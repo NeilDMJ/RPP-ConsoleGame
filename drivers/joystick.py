@@ -30,19 +30,11 @@ class Joystick:
     """Un joystick KY-023 con dos ejes ADC y un boton digital."""
 
     def __init__(self, pin_x, pin_y, pin_btn, invertir_x=False, invertir_y=False):
-        """
-        Args:
-            pin_x (int): Pin GP del eje X (debe ser ADC-capable: 26, 27, 28, 29).
-            pin_y (int): Pin GP del eje Y.
-            pin_btn (int): Pin GP del boton (GPIO digital).
-            invertir_x (bool): Invierte el eje X si el joystick esta al reves.
-            invertir_y (bool): Invierte el eje Y.
-        """
-        self._adc_x   = ADC(Pin(pin_x))
-        self._adc_y   = ADC(Pin(pin_y))
-        self._btn     = Pin(pin_btn, Pin.IN, Pin.PULL_DOWN)
-        self._inv_x   = -1 if invertir_x else 1
-        self._inv_y   = -1 if invertir_y else 1
+        self._adc_x = ADC(Pin(pin_x))
+        self._adc_y = ADC(Pin(pin_y))
+        self._btn   = Pin(pin_btn, Pin.IN, Pin.PULL_UP)  # era PULL_DOWN
+        self._inv_x = -1 if invertir_x else 1
+        self._inv_y = -1 if invertir_y else 1
 
     def x(self):
         """Eje X normalizado: -1.0 (izquierda) a 1.0 (derecha)."""
@@ -57,8 +49,7 @@ class Joystick:
         return self.x(), self.y()
 
     def boton(self):
-        """True si el boton esta presionado."""
-        return self._btn.value() == 1
+        return self._btn.value() == 0  # era == 1, invertir para PULL_UP
 
     def direccion(self, umbral=0.4):
         """

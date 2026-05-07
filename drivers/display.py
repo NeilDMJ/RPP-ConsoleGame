@@ -7,7 +7,7 @@ from machine import Pin, SPI
 
 
 def init_display():
-    spi = SPI(1, baudrate=40_000_000, sck=Pin(14), mosi=Pin(15))
+    spi = SPI(1, baudrate=10_000_000, sck=Pin(14), mosi=Pin(15))
     display = Display(spi, dc=Pin(6), cs=Pin(17), rst=Pin(7),
                       width=320, height=240, rotation=90)
     display.clear()
