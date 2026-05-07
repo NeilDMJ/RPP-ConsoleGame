@@ -51,14 +51,18 @@ def leer():
     if not hay_toque():
         return None
 
-    z1 = _leer_raw(0xB0)
-    z2 = _leer_raw(0xC0)
+    z1 = _leer_raw(0xB1)
+    z2 = _leer_raw(0xC1)
     if z1 < 100 or z2 > 3900:
+        _leer_raw(0x90)
         return None
 
-    # Promediar 3 lecturas para mayor precision
-    rx = (_leer_raw(0xD0) + _leer_raw(0xD0) + _leer_raw(0xD0)) // 3
-    ry = (_leer_raw(0x90) + _leer_raw(0x90) + _leer_raw(0x90)) // 3
+    # Promediar 3 lecturas para mayor precision (ADC encendido)
+    rx = (_leer_raw(0xD1) + _leer_raw(0xD1) + _leer_raw(0xD1)) // 3
+    ry = (_leer_raw(0x91) + _leer_raw(0x91) + _leer_raw(0x91)) // 3
+
+    # Dummy read con power-down → rearma PENIRQ
+    _leer_raw(0x90)
 
     # Mapear a landscape: X del touch -> X pantalla, Y touch -> Y pantalla
     x = int((_MAX_X - rx) * _W / (_MAX_X - _MIN_X))
