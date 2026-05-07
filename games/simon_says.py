@@ -148,23 +148,11 @@ def _reproducir_secuencia(display, secuencia):
 
 # ── Lectura combinada (tactil + IMU) ──────────────────────────
 
-def _remap_touch(tx, ty):
-    """
-    Convierte coords nativas del XPT2046 (tx:0-239, ty:0-319) a
-    coords landscape de pantalla (X:0-319, Y:0-239) para rotation=90.
-    Si la calibracion fisica difiere, invertir uno de los ejes aqui.
-    """
-    x_pant = ty
-    y_pant = 239 - tx
-    return x_pant, y_pant
-
-
 def _obtener_accion_jugador():
     # 1. Tactil
     t = drv_touch.leer()
     if t is not None:
-        tx, ty = t
-        x, y   = _remap_touch(tx, ty)
+        x, y = t
         if x < 160 and y < 120:  return 0
         if x >= 160 and y < 120: return 1
         if x < 160 and y >= 120: return 2

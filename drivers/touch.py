@@ -51,14 +51,14 @@ def leer():
     if not hay_toque():
         return None
 
-    z1 = _leer_raw(0xB1)
-    z2 = _leer_raw(0xC1)
+    z1 = _leer_raw(0xB0)
+    z2 = _leer_raw(0xC0)
     if z1 < 100 or z2 > 3900:
         return None
 
     # Promediar 3 lecturas para mayor precision
-    rx = (_leer_raw(0xD1) + _leer_raw(0xD1) + _leer_raw(0xD1)) // 3
-    ry = (_leer_raw(0x91) + _leer_raw(0x91) + _leer_raw(0x91)) // 3
+    rx = (_leer_raw(0xD0) + _leer_raw(0xD0) + _leer_raw(0xD0)) // 3
+    ry = (_leer_raw(0x90) + _leer_raw(0x90) + _leer_raw(0x90)) // 3
 
     # Mapear a landscape: X del touch -> X pantalla, Y touch -> Y pantalla
     x = int((_MAX_X - rx) * _W / (_MAX_X - _MIN_X))
