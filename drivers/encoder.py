@@ -32,7 +32,7 @@ class Encoder:
         """Devuelve cambio acumulado desde la ultima llamada y resetea."""
         d = self._counter
         self._counter = 0
-        return d // 2  # cada detent = 2 transiciones
+        return d // 1  # cada detent = 2 transiciones
 
     def boton(self):
         if self._sw is None:

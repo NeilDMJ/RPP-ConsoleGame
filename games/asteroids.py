@@ -30,6 +30,12 @@ NAVE_X    = W_SCR // 2
 NAVE_Y    = H_SCR // 2
 FPS_MS    = 33  # ~30 fps
 
+# Area de juego (deja espacio para UI arriba y margen)
+PLAY_TOP    = 20
+PLAY_BOTTOM = H_SCR - 4
+PLAY_LEFT   = 4
+PLAY_RIGHT  = W_SCR - 4
+
 PUNTOS_NAVE = [(0, -8), (-6, 6), (0, 3), (6, 6)]
 
 # ─── Geometria ────────────────────────────────────────────────
@@ -86,8 +92,10 @@ def _crear_asteroide(x, y, tamano, vx=None, vy=None):
 def _generar_asteroides(cantidad):
     asteroides = []
     for _ in range(cantidad):
-        x = random.choice([random.randint(20, 100), random.randint(220, 300)])
-        y = random.choice([random.randint(20, 80),  random.randint(160, 220)])
+        x = random.choice([random.randint(PLAY_LEFT + 20, 100),
+                           random.randint(220, PLAY_RIGHT - 20)])
+        y = random.choice([random.randint(PLAY_TOP + 5, 80),
+                           random.randint(160, PLAY_BOTTOM - 20)])
         asteroides.append(_crear_asteroide(x, y, 3))
     return asteroides
 
@@ -169,10 +177,10 @@ def jugar(display):
             b["y"] += b["vy"]
             b["vida"] -= 1
         balas_a_borrar = [b for b in balas if b["vida"] <= 0
-                          or b["x"] < 0 or b["x"] >= W_SCR
-                          or b["y"] < 0 or b["y"] >= H_SCR]
+                          or b["x"] < PLAY_LEFT  or b["x"] >= PLAY_RIGHT
+                          or b["y"] < PLAY_TOP   or b["y"] >= PLAY_BOTTOM]
         for b in balas_a_borrar:
-            _borrar_bala(display, {"prev_x": b["x"], "prev_y": b["y"]}, NEGRO)
+            _borrar_bala(display, b, NEGRO)  # borra en prev_x/prev_y (ultima pos dibujada)
             balas.remove(b)
 
         for a in asteroides:
@@ -181,14 +189,14 @@ def jugar(display):
             a["x"] += a["vx"]
             a["y"] += a["vy"]
             s = a["size"]
-            if a["x"] - s < 0:
-                a["x"] = float(s);          a["vx"] = abs(a["vx"])
-            elif a["x"] + s > W_SCR:
-                a["x"] = float(W_SCR - s);  a["vx"] = -abs(a["vx"])
-            if a["y"] - s < 0:
-                a["y"] = float(s);          a["vy"] = abs(a["vy"])
-            elif a["y"] + s > H_SCR:
-                a["y"] = float(H_SCR - s);  a["vy"] = -abs(a["vy"])
+            if a["x"] - s < PLAY_LEFT:
+                a["x"] = float(PLAY_LEFT + s);    a["vx"] = abs(a["vx"])
+            elif a["x"] + s > PLAY_RIGHT:
+                a["x"] = float(PLAY_RIGHT - s);   a["vx"] = -abs(a["vx"])
+            if a["y"] - s < PLAY_TOP:
+                a["y"] = float(PLAY_TOP + s);     a["vy"] = abs(a["vy"])
+            elif a["y"] + s > PLAY_BOTTOM:
+                a["y"] = float(PLAY_BOTTOM - s);  a["vy"] = -abs(a["vy"])
 
         # 3. Colisiones
         nuevos_asteroides = []
@@ -217,15 +225,16 @@ def jugar(display):
                     drv_buzzer.sfx_error()
                     nave["invulnerable"] = 60
 
-        # Borrar asteroides destruidos de pantalla
+        # Borrar asteroides destruidos (en prev_x/prev_y = ultima pos dibujada)
+        # Usa size+2 padding para asegurar que limpia todo el cuadro previo.
         for i in asteroides_destruidos:
             a = asteroides[i]
-            s = a["size"]
-            display.fill_hrect(int(a["x"]) - s, int(a["y"]) - s, s * 2, s * 2, NEGRO)
-        # Borrar balas destruidas de pantalla
+            s = a["size"] + 2
+            display.fill_hrect(int(a["prev_x"]) - s, int(a["prev_y"]) - s,
+                               s * 2, s * 2, NEGRO)
+        # Borrar balas destruidas en prev_x/prev_y
         for j in balas_destruidas:
-            b = balas[j]
-            _borrar_bala(display, {"prev_x": b["x"], "prev_y": b["y"]}, NEGRO)
+            _borrar_bala(display, balas[j], NEGRO)
 
         asteroides = [a for i, a in enumerate(asteroides) if i not in asteroides_destruidos]
         asteroides.extend(nuevos_asteroides)
@@ -240,11 +249,12 @@ def jugar(display):
 
         # 4. Dibujar (dirty-rect)
 
-        # Asteroides: borrar prev, dibujar nuevo
+        # Asteroides: borrar prev (con padding), dibujar nuevo
         for a in asteroides:
-            s = a["size"]
-            display.fill_hrect(int(a["prev_x"]) - s, int(a["prev_y"]) - s,
-                               s * 2, s * 2, NEGRO)
+            s  = a["size"]
+            sp = s + 1
+            display.fill_hrect(int(a["prev_x"]) - sp, int(a["prev_y"]) - sp,
+                               sp * 2, sp * 2, NEGRO)
             display.fill_hrect(int(a["x"]) - s, int(a["y"]) - s,
                                s * 2, s * 2, CYAN)
 
