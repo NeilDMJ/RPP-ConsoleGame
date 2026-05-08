@@ -123,7 +123,7 @@ def _disparar(nave, balas):
 # ─── Bucle Principal ──────────────────────────────────────────
 
 def jugar(display):
-    from drivers.display import NEGRO, BLANCO, CYAN, ROJO
+    from drivers.display import NEGRO, BLANCO, CYAN, ROJO, AMARILLO
     
     nave = _crear_nave()
     asteroides = _generar_asteroides(4)
@@ -266,4 +266,15 @@ def jugar(display):
         if tiempo_frame < 33:
             sleep_ms(33 - tiempo_frame)
             
+    # Game Over
+    drv_buzzer.sfx_game_over()
+    display.fill_rectangle(0, 0, W_SCR, H_SCR, NEGRO)
+    display.draw_text8x8(W_SCR//2 - 40, H_SCR//2 - 20, "GAME OVER", ROJO)
+    display.draw_text8x8(W_SCR//2 - 52, H_SCR//2 - 4,  f"Puntaje: {puntaje}", BLANCO)
+
+    es_record = drv_storage.guardar_record(JUEGO_ID, puntaje)
+    if es_record:
+        display.draw_text8x8(W_SCR//2 - 40, H_SCR//2 + 12, "NUEVO RECORD!", AMARILLO)
+
+    sleep_ms(3000)
     return puntaje

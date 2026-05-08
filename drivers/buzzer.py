@@ -7,7 +7,7 @@ from machine import PWM, Pin
 from utime import sleep_ms
 
 _pwm  = None
-_PIN  = 22
+_PIN  = 0
 
 
 def init_buzzer():
