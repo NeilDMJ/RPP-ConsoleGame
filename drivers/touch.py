@@ -13,14 +13,14 @@ from machine import Pin, SPI
 from utime import sleep_ms
 from drivers.xpt2046 import Touch  # driver de rdagger
 
-# ── Calibracion (los mismos valores que tenias) ───────────────
-# OJO: en el driver de rdagger las "unidades raw" son 12-bit (0-4095),
-# igual que en tu driver anterior, asi que los limites se conservan.
-# Valores de tu calibracion real
-_MIN_X = 0    # ny minimo (sup-izq)
-_MAX_X = 150   # ny maximo (sup-der)
-_MIN_Y = 6    # nx minimo (sup-izq)
-_MAX_Y = 108    # nx maximo (inf-izq)
+# ── Calibracion ───────────────────────────────────────────────
+# nx = lectura cruda GET_X del XPT2046 (eje vertical landscape)
+# ny = lectura cruda GET_Y del XPT2046 (eje horizontal landscape)
+# Valores impresos por calibrar()
+_MIN_NX = 6
+_MAX_NX = 108
+_MIN_NY = 0
+_MAX_NY = 150
 
 # Dimensiones LOGICAS (lo que ven tus juegos)
 _W = 320
@@ -48,8 +48,8 @@ def init_touch():
         int_pin=None,          # no usamos el modo IRQ del driver; lo manejamos aparte
         int_handler=None,
         width=_NATIVE_W, height=_NATIVE_H,
-        x_min=_MIN_X, x_max=_MAX_X,
-        y_min=_MIN_Y, y_max=_MAX_Y,
+        x_min=_MIN_NX, x_max=_MAX_NX,
+        y_min=_MIN_NY, y_max=_MAX_NY,
     )
 
 
@@ -62,14 +62,17 @@ def leer():
     if _touch is None or not hay_toque():
         return None
 
-    p = _touch.get_touch()
+    # raw_touch devuelve (GET_X, GET_Y) crudos validados contra rango.
+    # Evitamos get_touch porque su normalize re-escala y romperia la rotacion.
+    p = _touch.raw_touch()
     if p is None:
         return None
 
     nx, ny = p
 
-    x = int((ny - _MIN_X) * _W / (_MAX_X - _MIN_X))
-    y = int((nx - _MIN_Y) * _H / (_MAX_Y - _MIN_Y))
+    # Rotacion a landscape: x landscape <- ny, y landscape <- nx
+    x = int((ny - _MIN_NY) * _W / (_MAX_NY - _MIN_NY))
+    y = int((nx - _MIN_NX) * _H / (_MAX_NX - _MIN_NX))
 
     x = max(0, min(_W - 1, x))
     y = max(0, min(_H - 1, y))
@@ -103,7 +106,7 @@ def calibrar(display):
     print("Calibracion — pega estos valores en touch.py:")
     xs = [r[2] for r in resultados]
     ys = [r[3] for r in resultados]
-    print(f"_MIN_X = {min(xs)}")
-    print(f"_MAX_X = {max(xs)}")
-    print(f"_MIN_Y = {min(ys)}")
-    print(f"_MAX_Y = {max(ys)}")
+    print(f"_MIN_NX = {min(xs)}")
+    print(f"_MAX_NX = {max(xs)}")
+    print(f"_MIN_NY = {min(ys)}")
+    print(f"_MAX_NY = {max(ys)}")

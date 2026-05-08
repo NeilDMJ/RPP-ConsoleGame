@@ -52,9 +52,10 @@ def jugar(display):
     random.seed(ticks_ms())
     puntaje   = 0
     secuencia = []
-
+    #Se inicializa la interfaz grafica
     _pantalla_inicio(display)
     sleep_ms(900)
+    #Se dibujan los cuadrantes
     _dibujar_cuadrantes(display)
     sleep_ms(500)
 
