@@ -17,10 +17,10 @@ from drivers.xpt2046 import Touch  # driver de rdagger
 # nx = lectura cruda GET_X del XPT2046 (eje vertical landscape)
 # ny = lectura cruda GET_Y del XPT2046 (eje horizontal landscape)
 # Valores impresos por calibrar()
-_MIN_NX = 6
-_MAX_NX = 108
-_MIN_NY = 0
-_MAX_NY = 150
+_MIN_NX = 225
+_MAX_NX = 1767
+_MIN_NY = 297
+_MAX_NY = 1871
 
 # Dimensiones LOGICAS (lo que ven tus juegos)
 _W = 320
