@@ -183,7 +183,7 @@ def _esperar_liberacion(max_ms=1500):
 
 def _esperar_input(display, secuencia):
     # Drenar estado residual antes de empezar (gesto sostenido del paso anterior, etc.)
-    _esperar_liberacion(max_ms=600)
+    _esperar_liberacion(max_ms=100)
 
     for esperada in secuencia:
         t_inicio = ticks_ms()

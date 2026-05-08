@@ -1,72 +1,84 @@
 """
-Driver tactil XPT2046 — SPI0 (separado de la pantalla que usa SPI1).
+Driver tactil XPT2046 (basado en rdagger/micropython-ili9341).
+SPI0 separado del SPI1 de la pantalla.
 SCK=GP18, MOSI=GP19, MISO=GP16, CS=GP13, IRQ=GP8
-Orientacion landscape 320x240.
+
+API publica (compatible con la version anterior):
+  init_touch()  -> inicializa el hardware
+  hay_toque()   -> bool, lectura rapida del PENIRQ
+  leer()        -> (x, y) en landscape 320x240, o None
+  calibrar(display) -> rutina interactiva de calibracion
 """
 from machine import Pin, SPI
 from utime import sleep_ms
+from drivers.xpt2046 import Touch  # driver de rdagger
 
-# ── Calibracion ───────────────────────────────────────────────
+# ── Calibracion (los mismos valores que tenias) ───────────────
+# OJO: en el driver de rdagger las "unidades raw" son 12-bit (0-4095),
+# igual que en tu driver anterior, asi que los limites se conservan.
 _MIN_X = 200
 _MAX_X = 3800
 _MIN_Y = 300
 _MAX_Y = 3700
 
-# Dimensiones landscape
+# Dimensiones LOGICAS (lo que ven tus juegos)
 _W = 320
 _H = 240
 
-_spi_touch = None
-_cs_touch  = None
-_irq       = None
+# El driver de rdagger trabaja en orientacion "nativa" del panel (240x320).
+# Le pedimos que normalice a 240x320 y nosotros rotamos a landscape al final.
+_NATIVE_W = 240
+_NATIVE_H = 320
+
+_touch = None
+_irq   = None
 
 
 def init_touch():
-    global _spi_touch, _cs_touch, _irq
-    # SPI0 — completamente separado del SPI1 de la pantalla
-    _spi_touch = SPI(0, baudrate=1_000_000,
-                     sck=Pin(18), mosi=Pin(19), miso=Pin(16))
-    _cs_touch  = Pin(13, Pin.OUT, value=1)
-    _irq       = Pin(8,  Pin.IN,  Pin.PULL_UP)
+    global _touch, _irq
+
+    spi = SPI(0, baudrate=1_000_000,
+              sck=Pin(18), mosi=Pin(19), miso=Pin(16))
+    cs  = Pin(13, Pin.OUT, value=1)
+    _irq = Pin(8, Pin.IN, Pin.PULL_UP)
+
+    _touch = Touch(
+        spi, cs,
+        int_pin=None,          # no usamos el modo IRQ del driver; lo manejamos aparte
+        int_handler=None,
+        width=_NATIVE_W, height=_NATIVE_H,
+        x_min=_MIN_X, x_max=_MAX_X,
+        y_min=_MIN_Y, y_max=_MAX_Y,
+    )
 
 
 def hay_toque():
-    """Consulta rapida sin leer SPI. True si hay dedo en la pantalla."""
+    """Consulta rapida del pin PENIRQ. True si hay dedo apoyado."""
     return _irq is not None and _irq.value() == 0
-
-
-def _leer_raw(cmd):
-    _cs_touch.value(0)
-    _spi_touch.write(bytes([cmd]))
-    data = _spi_touch.read(2)
-    _cs_touch.value(1)
-    return ((data[0] << 8) | data[1]) >> 3
 
 
 def leer():
     """
-    Devuelve (x, y) en coordenadas landscape (0-319, 0-239), o None.
-    Solo llama si hay_toque() es True para no desperdiciar ciclos.
+    Devuelve (x, y) en landscape (0-319, 0-239), o None.
+    Hace muestreo con consenso (5 lecturas estables) — robusto frente a ruido.
     """
-    if not hay_toque():
+    if _touch is None or not hay_toque():
         return None
 
-    z1 = _leer_raw(0xB1)
-    z2 = _leer_raw(0xC1)
-    if z1 < 100 or z2 > 3900:
-        _leer_raw(0x90)
+    # get_touch() bloquea hasta tener 5 muestras consistentes o timeout (~2s).
+    # Si quieres una lectura no-bloqueante usa raw_touch() y normalize().
+    p = _touch.get_touch()
+    if p is None:
         return None
 
-    # Promediar 3 lecturas para mayor precision (ADC encendido)
-    rx = (_leer_raw(0xD1) + _leer_raw(0xD1) + _leer_raw(0xD1)) // 3
-    ry = (_leer_raw(0x91) + _leer_raw(0x91) + _leer_raw(0x91)) // 3
+    nx, ny = p  # coordenadas en orientacion nativa (240x320)
 
-    # Dummy read con power-down → rearma PENIRQ
-    _leer_raw(0x90)
-
-    # Mapear a landscape: X del touch -> X pantalla, Y touch -> Y pantalla
-    x = int((_MAX_X - rx) * _W / (_MAX_X - _MIN_X))
-    y = int((ry - _MIN_Y) * _H / (_MAX_Y - _MIN_Y))
+    # Rotar a landscape: el panel nativo es portrait 240x320,
+    # pero tu UI dibuja en 320x240. Mapeo estandar de rotacion 90°:
+    #   x_landscape = ny
+    #   y_landscape = (NATIVE_W - 1) - nx
+    x = ny
+    y = (_NATIVE_W - 1) - nx
 
     x = max(0, min(_W - 1, x))
     y = max(0, min(_H - 1, y))
@@ -91,8 +103,9 @@ def calibrar(display):
         while not hay_toque():
             sleep_ms(20)
         sleep_ms(50)
-        rx = _leer_raw(0xD1)
-        ry = _leer_raw(0x91)
+        # Lectura cruda directa al chip
+        rx = _touch.send_command(_touch.GET_X)
+        ry = _touch.send_command(_touch.GET_Y)
         resultados.append((px, py, rx, ry))
         sleep_ms(400)
         display.fill_circle(px, py, 6, NEGRO)
