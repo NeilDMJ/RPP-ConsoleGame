@@ -68,11 +68,8 @@ def leer():
 
     nx, ny = p
 
-    # Mapeo correcto segun calibracion real:
-    # ny varia con X de pantalla (izq->der):  22->144
-    # nx varia con Y de pantalla (arr->abj):  16->96
-    x = int((ny - 22)  * _W / (144 - 22))
-    y = int((nx - 16)  * _H / (96  - 16))
+    x = int((ny - _MIN_X) * _W / (_MAX_X - _MIN_X))
+    y = int((nx - _MIN_Y) * _H / (_MAX_Y - _MIN_Y))
 
     x = max(0, min(_W - 1, x))
     y = max(0, min(_H - 1, y))
