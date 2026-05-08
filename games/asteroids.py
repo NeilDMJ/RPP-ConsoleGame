@@ -14,7 +14,7 @@ from drivers import imu      as drv_imu
 from drivers import storage  as drv_storage
 from drivers.joystick import joy1
 from utime import sleep_ms, ticks_ms, ticks_diff
-from math import sin, cos, pi
+from math import sin, cos
 import random
 
 
@@ -68,28 +68,23 @@ def _crear_nave():
     }
 
 def _crear_asteroide(x, y, tamano, vx=None, vy=None):
-    """tamano: 3=grande, 2=mediano, 1=pequeno."""
-    puntos_base = []
-    num_puntos = 5 + tamano * 2
-    radio = tamano * 6.0
-    for i in range(num_puntos):
-        angulo = (2 * pi / num_puntos) * i
-        r = radio + random.uniform(-radio*0.3, radio*0.3)
-        puntos_base.append((r * cos(angulo), r * sin(angulo)))
-        
+    """tamano: 3=grande, 2=mediano, 1=pequeno. Forma: cuadrado."""
+    size = tamano * 6
+
     if vx is None:
         vx = random.uniform(-1.0, 1.0) * (4 - tamano) * 0.6
+        if abs(vx) < 0.3:
+            vx = 0.3 if vx >= 0 else -0.3
     if vy is None:
         vy = random.uniform(-1.0, 1.0) * (4 - tamano) * 0.6
-        
+        if abs(vy) < 0.3:
+            vy = 0.3 if vy >= 0 else -0.3
+
     return {
         "x": float(x), "y": float(y),
         "vx": vx, "vy": vy,
         "tamano": tamano,
-        "radio": radio, # para colisiones
-        "puntos_base": puntos_base,
-        "angulo": 0.0,
-        "rotacion": random.uniform(-0.1, 0.1)
+        "size": size,
     }
 
 def _generar_asteroides(cantidad):
@@ -185,9 +180,21 @@ def jugar(display):
         balas = [b for b in balas if b["vida"] > 0]
         
         for a in asteroides:
-            a["x"] = (a["x"] + a["vx"]) % W_SCR
-            a["y"] = (a["y"] + a["vy"]) % H_SCR
-            a["angulo"] += a["rotacion"]
+            a["x"] += a["vx"]
+            a["y"] += a["vy"]
+            s = a["size"]
+            if a["x"] - s < 0:
+                a["x"] = float(s)
+                a["vx"] = abs(a["vx"])
+            elif a["x"] + s > W_SCR:
+                a["x"] = float(W_SCR - s)
+                a["vx"] = -abs(a["vx"])
+            if a["y"] - s < 0:
+                a["y"] = float(s)
+                a["vy"] = abs(a["vy"])
+            elif a["y"] + s > H_SCR:
+                a["y"] = float(H_SCR - s)
+                a["vy"] = -abs(a["vy"])
             
         # 3. Colisiones
         nuevos_asteroides = []
@@ -198,8 +205,8 @@ def jugar(display):
             # Proyectiles vs Asteroide
             for j, b in enumerate(balas):
                 if j in balas_destruidas: continue
-                dist_sq = (a["x"] - b["x"])**2 + (a["y"] - b["y"])**2
-                if dist_sq < a["radio"]**2 * 1.5: # 1.5 aprox padding
+                s = a["size"]
+                if abs(a["x"] - b["x"]) < s and abs(a["y"] - b["y"]) < s:
                     asteroides_destruidos.add(i)
                     balas_destruidas.add(j)
                     puntaje += 10 * a["tamano"]
@@ -212,8 +219,8 @@ def jugar(display):
                     
             # Nave vs Asteroide
             if nave["invulnerable"] == 0 and i not in asteroides_destruidos:
-                dist_sq = (a["x"] - nave["x"])**2 + (a["y"] - nave["y"])**2
-                if dist_sq < (a["radio"] + 5)**2:
+                s = a["size"] + 5
+                if abs(a["x"] - nave["x"]) < s and abs(a["y"] - nave["y"]) < s:
                     nave["vidas"] -= 1
                     drv_buzzer.sfx_error()
                     nave["x"] = W_SCR / 2
@@ -241,8 +248,8 @@ def jugar(display):
         display.draw_text8x8(W_SCR - 60, 5, f"Vidas:{nave['vidas']}", ROJO)
         
         for a in asteroides:
-            pts = _rotar_puntos(a["puntos_base"], a["x"], a["y"], a["angulo"])
-            _dibujar_poligono(display, pts, CYAN)
+            s = a["size"]
+            display.fill_hrect(int(a["x"]) - s, int(a["y"]) - s, s * 2, s * 2, CYAN)
             
         for b in balas:
             display.draw_pixel(int(b["x"]), int(b["y"]), BLANCO)
