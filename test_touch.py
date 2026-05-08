@@ -52,8 +52,10 @@ def _cuadrante_de(x, y):
 def _hud(display, linea1, linea2):
     """Banda inferior con info de la ultima muestra."""
     display.fill_rectangle(0, 215, _W, 25, drv_display.NEGRO)
-    display.draw_text8x8(2, 218, linea1[:39], drv_display.BLANCO)
-    display.draw_text8x8(2, 228, linea2[:39], drv_display.AMARILLO)
+    if linea1:
+        display.draw_text8x8(2, 218, linea1[:39], drv_display.BLANCO)
+    if linea2:
+        display.draw_text8x8(2, 228, linea2[:39], drv_display.AMARILLO)
 
 
 def correr(display=None, duracion_ms=60_000):
@@ -63,7 +65,7 @@ def correr(display=None, duracion_ms=60_000):
         drv_touch.init_touch()
 
     _dibujar_cuadrantes(display)
-    _hud(display, "Toca cuadrantes. Mira REPL.", "")
+    _hud(display, "Toca cuadrantes. Mira REPL.", " ")
 
     print("=" * 56)
     print("test_touch: pipeline Simon Says")
