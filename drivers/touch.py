@@ -73,11 +73,10 @@ def leer():
 
     nx, ny = p  # coordenadas en orientacion nativa (240x320)
 
-    # Rotar a landscape: el panel nativo es portrait 240x320,
-    # pero tu UI dibuja en 320x240. Mapeo estandar de rotacion 90°:
-    #   x_landscape = ny
-    #   y_landscape = (NATIVE_W - 1) - nx
-    x = ny
+    # Rotar a landscape: MADCTL 0xE0 (MY=1 MX=1 MV=1).
+    # frame(px,py) -> panel fisico (col=239-py, row=319-px)
+    # Despejando: px = (NATIVE_H-1) - ny, py = (NATIVE_W-1) - nx
+    x = (_NATIVE_H - 1) - ny
     y = (_NATIVE_W - 1) - nx
 
     x = max(0, min(_W - 1, x))
