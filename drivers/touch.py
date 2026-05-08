@@ -16,10 +16,11 @@ from drivers.xpt2046 import Touch  # driver de rdagger
 # ── Calibracion (los mismos valores que tenias) ───────────────
 # OJO: en el driver de rdagger las "unidades raw" son 12-bit (0-4095),
 # igual que en tu driver anterior, asi que los limites se conservan.
-_MIN_X = 200
-_MAX_X = 3800
-_MIN_Y = 300
-_MAX_Y = 3700
+# Valores de tu calibracion real
+_MIN_X = 0    # ny minimo (sup-izq)
+_MAX_X = 150   # ny maximo (sup-der)
+_MIN_Y = 6    # nx minimo (sup-izq)
+_MAX_Y = 108    # nx maximo (inf-izq)
 
 # Dimensiones LOGICAS (lo que ven tus juegos)
 _W = 320
@@ -58,31 +59,24 @@ def hay_toque():
 
 
 def leer():
-    """
-    Devuelve (x, y) en landscape (0-319, 0-239), o None.
-    Hace muestreo con consenso (5 lecturas estables) — robusto frente a ruido.
-    """
     if _touch is None or not hay_toque():
         return None
 
-    # get_touch() bloquea hasta tener 5 muestras consistentes o timeout (~2s).
-    # Si quieres una lectura no-bloqueante usa raw_touch() y normalize().
     p = _touch.get_touch()
     if p is None:
         return None
 
-    nx, ny = p  # coordenadas en orientacion nativa (240x320)
+    nx, ny = p
 
-    # Rotar a landscape: MADCTL 0xE0 (MY=1 MX=1 MV=1).
-    # frame(px,py) -> panel fisico (col=239-py, row=319-px)
-    # Despejando: px = (NATIVE_H-1) - ny, py = (NATIVE_W-1) - nx
-    x = (_NATIVE_H - 1) - ny
-    y = (_NATIVE_W - 1) - nx
+    # Mapeo correcto segun calibracion real:
+    # ny varia con X de pantalla (izq->der):  22->144
+    # nx varia con Y de pantalla (arr->abj):  16->96
+    x = int((ny - 22)  * _W / (144 - 22))
+    y = int((nx - 16)  * _H / (96  - 16))
 
     x = max(0, min(_W - 1, x))
     y = max(0, min(_H - 1, y))
     return x, y
-
 
 def calibrar(display):
     """Calibracion interactiva. Ejecutar una vez y anotar los valores."""
