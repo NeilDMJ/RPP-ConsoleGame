@@ -103,7 +103,6 @@ def calibrar(display):
         sleep_ms(400)
         display.fill_circle(px, py, 6, NEGRO)
 
-    print("Calibracion — pega estos valores en touch.py:")
     xs = [r[2] for r in resultados]
     ys = [r[3] for r in resultados]
     print(f"_MIN_NX = {min(xs)}")

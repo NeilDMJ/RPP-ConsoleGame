@@ -5,7 +5,7 @@ Autor: Jesus Alfonso Morales Jaimes
 Mecanica:
   - Pantalla landscape 320x240 dividida en 4 cuadrantes 160x120.
   - El sistema reproduce una secuencia que el jugador repite tocando los cuadrantes.
-  - A partir del nivel 5 se intercalan gestos de inclinacion (IMU).
+  - A partir de la ronda 2 se intercalan gestos de inclinacion (IMU).
   - Cada ronda correcta suma puntos y agrega un elemento a la secuencia.
 
 Acciones:
@@ -61,10 +61,14 @@ def jugar(display):
 
     while True:
         # A) Agregar nuevo paso
-        if len(secuencia) < 4:
-            nuevo = random.randint(0, 3)        # solo colores
+        if len(secuencia) < 1:
+            nuevo = random.randint(0, 3)        # ronda 1: solo colores
         else:
-            nuevo = random.randint(0, 5)        # colores + 2 gestos
+            # ronda 2+: 50% gesto, 50% color (antes era ~33% gesto con randint(0,5))
+            if random.random() < 0.5:
+                nuevo = random.randint(4, 5)    # gesto IMU (izq/der)
+            else:
+                nuevo = random.randint(0, 3)    # color
         secuencia.append(nuevo)
         sleep_ms(500)
 
@@ -98,7 +102,7 @@ def _pantalla_inicio(display):
     display.fill_rectangle(0, 0, _W, _H, drv_display.NEGRO)
     display.draw_text8x8( 80,  90, "SIMON SAYS PLUS", drv_display.AMARILLO)
     display.draw_text8x8( 96, 120, "Repite secuencia", drv_display.BLANCO)
-    display.draw_text8x8( 60, 150, "Lvl 5+: inclina console", drv_display.GRIS)
+    display.draw_text8x8( 60, 150, "Lvl 2+: inclina console", drv_display.GRIS)
 
 
 def _dibujar_cuadrantes(display):
@@ -159,10 +163,12 @@ def _obtener_accion_jugador():
         if x < 160 and y >= 120: return 2
         if x >= 160 and y >= 120: return 3
 
-    # 2. IMU
+    # 2. IMU — el eje X del MPU6050 esta invertido respecto a la orientacion
+    # fisica de la consola (verificado con test_imu.py: _INV_X = True),
+    # por eso ax > 0 al inclinar a la IZQUIERDA y ax < 0 al inclinar a la DERECHA.
     ax, _, _ = drv_imu.leer()
-    if ax < -_UMBRAL_IMU: return 4   # inclinacion izquierda
-    if ax >  _UMBRAL_IMU: return 5   # inclinacion derecha
+    if ax >  _UMBRAL_IMU: return 4   # inclinacion izquierda
+    if ax < -_UMBRAL_IMU: return 5   # inclinacion derecha
 
     return None
 
